@@ -35,7 +35,7 @@ jobs:
           
       - name: 🤖 生成 Android 工程并同步代码
         run: |
-          npx cap add android
+          if [ ! -d "android" ]; then npx cap add android; fi
           npx cap sync android
 
       - name: 🎨 生成 App 图标与启动页 (必须在生成 Android 工程之后)
