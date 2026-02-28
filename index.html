@@ -3,8 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#f2f2f7">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>快捷日报</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -15,6 +14,7 @@
       <div class="header-top">
         <h1>📝 快捷项目日报</h1>
         <div class="header-actions">
+          <button class="text-btn" id="theme-toggle-btn" style="font-size: 18px; margin-right: 8px;" onclick="toggleTheme()">🌗</button>
           <button class="text-btn" onclick="openSummary()">日报汇总</button>
           <button id="clear-draft-btn" class="text-btn" style="color: #ff3b30; margin-left: 12px;">清空本页</button>
         </div>

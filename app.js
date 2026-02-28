@@ -11,34 +11,55 @@ let activeTabId = null;
 
 let HapticsPlugin = null;
 let ImpactStyle = null;
-let StatusBarPlugin = null;
-let pluginsReady = false;
-
-async function loadPlugins() {
-    if (!window.Capacitor) {
-        pluginsReady = true;
-        return;
-    }
-    try {
-        const hapticsModule = await import('@capacitor/haptics');
-        HapticsPlugin = hapticsModule.Haptics;
-        ImpactStyle = hapticsModule.ImpactStyle;
-    } catch (e) {}
-    try {
-        const statusBarModule = await import('@capacitor/status-bar');
-        StatusBarPlugin = statusBarModule.StatusBar;
-    } catch (e) {}
-    pluginsReady = true;
+if (window.Capacitor) {
+    import('@capacitor/haptics').then(module => {
+        HapticsPlugin = module.Haptics;
+        ImpactStyle = module.ImpactStyle;
+    }).catch(() => {});
 }
 
-function setupStatusBar() {
-    if (!StatusBarPlugin) return;
-    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    StatusBarPlugin.setStyle({ style: isDarkMode ? 'DARK' : 'LIGHT' });
+// 深色模式逻辑
+function updateThemeIcon() {
+    const btn = document.getElementById('theme-toggle-btn');
+    if (!btn) return;
+    const current = document.documentElement.getAttribute('data-theme');
+    // 如果是暗色，显示太阳图标；如果是亮色，显示月亮图标
+    btn.innerText = current === 'dark' ? '☀️' : '🌗';
+}
 
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-        StatusBarPlugin.setStyle({ style: e.matches ? 'DARK' : 'LIGHT' });
-    });
+function initTheme() {
+    const savedTheme = localStorage.getItem('ribao_theme_v1');
+    if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    } else {
+        // 跟随系统
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    }
+    updateThemeIcon();
+}
+
+function toggleTheme() {
+    vibrateShort();
+    const current = document.documentElement.getAttribute('data-theme');
+    // 如果当前是 dark，切 light；否则切 dark
+    // 注意：如果 current 为 null (默认)，且系统是 dark，那初始也是 dark，这里判断要小心
+    // 不过 initTheme 会设置 attribute，所以这里取到的应该是准确的
+    // 如果 attribute 没设置（比如系统是 light，且没存），getAttribute 返回 null
+    
+    let isDark = current === 'dark';
+    if (!current) {
+         // 兜底：如果没有 attribute，检查系统
+         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+             isDark = true;
+         }
+    }
+
+    const next = isDark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('ribao_theme_v1', next);
+    updateThemeIcon();
 }
 
 // 生成唯一 ID
@@ -58,8 +79,10 @@ function vibrateShort() {
 function saveProjectHistory(projectName) {
     if (!projectName) return;
     let history = JSON.parse(localStorage.getItem('ribao_project_history_v1') || '[]');
+    // 去重并提前
     history = history.filter(name => name !== projectName);
     history.unshift(projectName);
+    // 只保留最近 10 个
     if (history.length > 10) history.length = 10;
     localStorage.setItem('ribao_project_history_v1', JSON.stringify(history));
     updateProjectDatalist();
@@ -96,6 +119,7 @@ function saveDraft() {
         data[listId] = items;
     });
 
+    // 更新当前 tab 名称 (若有项目名则取项目名)
     const pName = document.getElementById('project-name').value.trim();
     if (pName) {
         tabObj.name = pName;
@@ -105,7 +129,7 @@ function saveDraft() {
 
     tabObj.data = data;
     forceSaveWorkspaces();
-    renderTabs();
+    renderTabs(); // 项目名可能会实时变更
     console.log('工作区草稿已自动保存');
 }
 
@@ -122,6 +146,7 @@ function initWorkspaces() {
             workspaces = JSON.parse(savedWs);
         }
 
+        // 兼容处理老版本单页面 localStorage 迁移
         if (!workspaces || workspaces.length === 0) {
             const legacyDraft = localStorage.getItem('ribao_draft_v1');
             const dataObj = legacyDraft ? JSON.parse(legacyDraft) : {};
@@ -194,6 +219,7 @@ function closeTab(id) {
     workspaces.splice(index, 1);
 
     if (activeTabId === id) {
+        // 如果删除的是当前激活的 tab，切换到前一个(或后一个)
         const nextActive = workspaces[Math.max(0, index - 1)];
         switchTab(nextActive.id);
     } else {
@@ -209,29 +235,46 @@ function switchTab(id) {
     forceSaveWorkspaces();
     renderTabs();
 
+    // 触发平滑过渡动画
     const mainContent = document.getElementById('main-content');
     if (mainContent) {
         mainContent.classList.remove('form-animate');
-        void mainContent.offsetWidth;
+        void mainContent.offsetWidth; // 触发重绘，重置动画
         mainContent.classList.add('form-animate');
     }
 
     loadWorkspaceData(id);
 }
 
+// 获取本地日期字符串 (YYYY-MM-DD)
+function getLocalTodayDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// 渲染某个项目的数据回页面
 function loadWorkspaceData(id) {
     const tabObj = workspaces.find(t => t.id === id);
     if (!tabObj) return;
 
     const data = tabObj.data || {};
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    // 自动跨天数据结转逻辑
+    const todayStr = getLocalTodayDate();
     const savedDateStr = data['report-date'];
 
     if (savedDateStr && savedDateStr < todayStr) {
-        data['report-date'] = todayStr;
+        // 发现数据记录的日期比今天老
+        data['report-date'] = todayStr; // 更新为今日日期
+        
+        // 把“明日计划”复制到“今日已完成”
         const tomorrowItems = data['tomorrow-plan'] || [];
-        data['today-done'] = [...tomorrowItems];
+        data['today-done'] = [...tomorrowItems]; // 直接完全复制过去
+        
+        // 自动触发一次保存更新存储
         forceSaveWorkspaces();
     }
 
@@ -258,89 +301,145 @@ function loadWorkspaceData(id) {
 
     updateProgressVal();
 
+    // 如果日期为空，默认填今天，并且触发一次 saveDraft() 把空白项目初始化
     const dateEl = document.getElementById('report-date');
     if (dateEl && !dateEl.value) {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalTodayDate();
         dateEl.value = today;
     }
 
+    // 如果问题需求为空，自动补无
     if (!data['issues']) {
         const ta = document.querySelector(`#issues-list textarea`);
         if (ta) ta.value = '无';
     }
 }
 
+// 防抖函数，避免频繁触发存储
+function debounce(func, timeout = 500) {
+    let timer;
+    return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => { func.apply(this, args); }, timeout);
+    };
+}
+const debounceSaveDraft = debounce(saveDraft, 800);
+
 function getPlaceholder(listId) {
-    if (listId === 'today-done') return '填写今日完成的工作...';
+    if (listId === 'today-done') return '填写今日完成工作...';
     if (listId === 'tomorrow-plan') return '填写明日的计划...';
-    return '填写遇到的问题或需求，无则填无';
+    if (listId === 'issues') return '填写遇到的问题或需求，无则填无';
+    return '';
 }
 
-function addDynamicItem(listId, placeholder, value = '') {
+function addDynamicItem(listId, placeholder = '', value = '') {
     const listEl = document.getElementById(listId);
     if (!listEl) return;
-
+    vibrateShort();
     const itemDiv = document.createElement('div');
     itemDiv.className = 'dynamic-item';
-    itemDiv.innerHTML = `
-        <div class="item-num">${listEl.children.length + 1}.</div>
-        <textarea placeholder="${placeholder}" ${value ? '' : 'autofocus'}>${value}</textarea>
-        <button class="remove-btn" onclick="removeDynamicItem(this)">×</button>
-    `;
+
+    const count = listEl.children.length + 1;
+
+    const countSpan = document.createElement('span');
+    countSpan.className = 'item-num';
+    countSpan.innerText = count + '.';
+
+    const ta = document.createElement('textarea');
+    ta.rows = 2;
+    ta.placeholder = placeholder;
+    ta.value = value;
+    ta.addEventListener('input', debounceSaveDraft);
+
+    itemDiv.appendChild(countSpan);
+    itemDiv.appendChild(ta);
+
+    if (count > 1) {
+        const btn = document.createElement('button');
+        btn.className = 'remove-btn';
+        btn.innerHTML = '&times;';
+        btn.onclick = function () { removeDynamicItem(this, listId); };
+        itemDiv.appendChild(btn);
+    } else {
+        const placeholderDiv = document.createElement('div');
+        placeholderDiv.style.width = '30px';
+        placeholderDiv.style.flexShrink = '0';
+        itemDiv.appendChild(placeholderDiv);
+    }
+
     listEl.appendChild(itemDiv);
 
-    const textarea = itemDiv.querySelector('textarea');
-    textarea.addEventListener('input', debounceSaveDraft);
-    textarea.addEventListener('focus', function() {
-        this.select();
-    });
-}
-
-function removeDynamicItem(btn) {
-    const item = btn.closest('.dynamic-item');
-    if (!item) return;
-    item.remove();
-    renumberDynamicItems(btn.closest('.dynamic-list'));
+    updateItemNumbers(listId);
     debounceSaveDraft();
 }
 
-function renumberDynamicItems(listEl) {
+function removeDynamicItem(btnEl, listId) {
+    vibrateShort();
+    const item = btnEl.closest('.dynamic-item');
+    item.remove();
+    updateItemNumbers(listId);
+    debounceSaveDraft();
+}
+
+function updateItemNumbers(listId) {
+    const listEl = document.getElementById(listId);
     if (!listEl) return;
     const items = listEl.querySelectorAll('.dynamic-item');
     items.forEach((item, index) => {
-        const numEl = item.querySelector('.item-num');
-        if (numEl) numEl.textContent = (index + 1) + '.';
+        item.querySelector('.item-num').innerText = (index + 1) + '.';
+        if (index === 0) {
+            const btn = item.querySelector('.remove-btn');
+            if (btn) {
+                const placeholderDiv = document.createElement('div');
+                placeholderDiv.style.width = '30px';
+                placeholderDiv.style.flexShrink = '0';
+                item.replaceChild(placeholderDiv, btn);
+            }
+        } else {
+            if (!item.querySelector('.remove-btn')) {
+                const placeholderDiv = item.querySelector('div[style]');
+                if (placeholderDiv) {
+                    const btn = document.createElement('button');
+                    btn.className = 'remove-btn';
+                    btn.innerHTML = '&times;';
+                    btn.onclick = function () { removeDynamicItem(this, listId); };
+                    item.replaceChild(btn, placeholderDiv);
+                }
+            }
+        }
     });
 }
 
-function copyDynamicField(listId) {
-    const listEl = document.getElementById(`${listId}-list`);
-    if (!listEl) return;
-    const items = listEl.querySelectorAll('textarea');
-    if (items.length === 0) return;
+// 初始化
+document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
+    initWorkspaces();
 
-    const text = Array.from(items).map(ta => ta.value).join('\n');
-    navigator.clipboard.writeText(text).then(() => {
-        showToast('已复制 ' + items.length + ' 条记录');
+    // 绑定所有输入框的 input 事件以实现【自动保存草稿】
+    fields.forEach(f => {
+        const el = document.getElementById(f);
+        if (el) el.addEventListener('input', debounceSaveDraft);
     });
-}
 
-function debounceSaveDraft() {
-    clearTimeout(window.saveDraftTimeout);
-    window.saveDraftTimeout = setTimeout(saveDraft, 500);
-}
+    // 进度条拖动监听
+    const slider = document.getElementById('progress-slider');
+    if (slider) {
+        slider.addEventListener('input', function () {
+            updateProgressVal();
+        });
+    }
 
-function stepVal(fieldId, delta) {
-    const el = document.getElementById(fieldId);
-    if (!el) return;
-    let val = parseInt(el.value) || 0;
-    val += delta;
-    if (val < 0) val = 0;
-    el.value = val;
-    vibrateShort();
-    debounceSaveDraft();
-}
+    // 监听 App 可见性变化（如后台切回前台），检查是否需要跨天更新
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            // 切回前台时，先保存当前状态，然后重新加载数据触发日期检查
+            saveDraft();
+            loadWorkspaceData(activeTabId);
+        }
+    });
+});
 
+// 核心功能 5：拖拽进度条显示与文字追加
 function updateProgressVal() {
     const slider = document.getElementById('progress-slider');
     const valEl = document.getElementById('progress-val');
@@ -354,51 +453,122 @@ function appendProgress() {
     if (textareas.length === 0) return;
     const ta = textareas[textareas.length - 1];
     const val = document.getElementById('progress-slider').value;
-    ta.value = ta.value.trim() + (ta.value.trim() ? ' ' : '') + `【${val}%】`;
-    debounceSaveDraft();
-}
 
-function showToast(message) {
-    const toast = document.getElementById('toast');
-    if (!toast) return;
-    toast.textContent = message;
-    toast.classList.add('show');
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 2000);
-}
-
-function openSummary() {
     vibrateShort();
-    const summaryToday = document.getElementById('summary-today-done');
-    const summaryTomorrow = document.getElementById('summary-tomorrow-plan');
-    const summaryIssues = document.getElementById('summary-issues');
 
-    if (!summaryToday || !summaryTomorrow || !summaryIssues) return;
+    // 追加到文本域最后
+    const currentText = ta.value.trim();
+    const appendText = `，进度${val}%`;
 
-    const todayItems = [];
-    const tomorrowItems = [];
-    const issuesItems = [];
+    if (currentText.length > 0) {
+        ta.value = currentText + appendText;
+    } else {
+        ta.value = `进度${val}%`;
+    }
 
-    workspaces.forEach(tab => {
-        const data = tab.data || {};
-        if (data['today-done'] && data['today-done'].length > 0) {
-            todayItems.push(`【${tab.name}】\n${data['today-done'].join('\n')}`);
-        }
-        if (data['tomorrow-plan'] && data['tomorrow-plan'].length > 0) {
-            tomorrowItems.push(`【${tab.name}】\n${data['tomorrow-plan'].join('\n')}`);
-        }
-        if (data['issues'] && data['issues'].length > 0) {
-            issuesItems.push(`【${tab.name}】\n${data['issues'].join('\n')}`);
+    saveDraft();
+    showToast('已追加进度到今日完成最后一条');
+}
+
+// 增减人数控制
+function stepVal(id, step) {
+    vibrateShort();
+    const el = document.getElementById(id);
+    if (!el) return;
+    let val = parseInt(el.value) || 0;
+    val += step;
+    if (val < 0) val = 0;
+    el.value = val;
+    saveDraft();
+}
+
+// 获取动态列表文本
+function getDynamicListText(listId) {
+    const items = [];
+    document.querySelectorAll(`#${listId}-list textarea`).forEach((ta, index) => {
+        const text = ta.value.trim();
+        if (text) {
+            items.push(`${index + 1}. ${text}`);
         }
     });
+    if (items.length === 1 && items[0].replace(/^\d+\.\s*/, '') === '无') {
+        return '无';
+    }
+    if (items.length === 0 && listId === 'issues') return '无';
+    return items.join('\n');
+}
 
-    summaryToday.value = todayItems.length > 0 ? todayItems.join('\n\n') : '';
-    summaryTomorrow.value = tomorrowItems.length > 0 ? tomorrowItems.join('\n\n') : '';
-    summaryIssues.value = issuesItems.length > 0 ? issuesItems.join('\n\n') : '';
+// 单独复制动态列表内容
+function copyDynamicField(listId) {
+    const text = getDynamicListText(listId);
+    if (!text) {
+        showToast('内容为空');
+        return;
+    }
+    doCopy(text, '已复制该项记录');
+}
 
+// 格式化日期： 2026-02-07 -> 2026年2月7日
+function formatDate(dateString) {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
+// 生成并复制完整日报
+document.getElementById('generate-btn').addEventListener('click', () => {
+    vibrateShort();
+    const pName = document.getElementById('project-name').value;
+
+    // 存入历史记录
+    saveProjectHistory(pName);
+
+    const rawDate = document.getElementById('report-date').value;
+    const weather = document.getElementById('weather').value;
+    const workers = document.getElementById('worker-count').value;
+    const managers = document.getElementById('manager-count').value;
+
+    const today = getDynamicListText('today-done') || '无';
+    const tomorrow = getDynamicListText('tomorrow-plan') || '无';
+    const issues = getDynamicListText('issues') || '无';
+
+    const formattedDate = formatDate(rawDate);
+
+    // 模板拼接
+    const reportText = `项目：${pName}\n日期：${formattedDate}\n天气：${weather}\n一、管理人员：${managers}名，工人：${workers}名\n二、今日已完成\n${today}\n三、明日计划\n${tomorrow}\n四、问题需求\n${issues}`;
+
+    doCopy(reportText, '✅ 完整日报已生成并复制，可直接粘贴到飞书等OA软件');
+});
+
+// 清空草稿
+document.getElementById('clear-draft-btn').addEventListener('click', () => {
+    if (confirm('确定要清空本页面的所有内容吗？')) {
+        const tabObj = workspaces.find(t => t.id === activeTabId);
+        if (tabObj) {
+            tabObj.data = {};
+            tabObj.name = '新项目';
+        }
+        forceSaveWorkspaces();
+        loadWorkspaceData(activeTabId);
+        renderTabs();
+    }
+});
+
+// --- 日报汇总逻辑 ---
+function openSummary() {
+    vibrateShort();
+
+    // 生成之前，先把当前页数据最新保存在内容里
+    saveDraft();
+
+    // 隐藏主视图，显示汇总视图
     document.getElementById('main-app').style.display = 'none';
     document.getElementById('summary-app').style.display = 'block';
+
+    // 取出各个部分的内容聚合
+    document.getElementById('summary-today-done').value = buildSummaryText('today-done');
+    document.getElementById('summary-tomorrow-plan').value = buildSummaryText('tomorrow-plan');
+    document.getElementById('summary-issues').value = buildSummaryText('issues');
 }
 
 function closeSummary() {
@@ -407,119 +577,77 @@ function closeSummary() {
     document.getElementById('summary-app').style.display = 'none';
 }
 
-function copySummaryField(fieldId) {
-    const el = document.getElementById(fieldId);
-    if (!el) return;
-    if (!el.value.trim()) {
-        showToast('暂无内容可复制');
-        return;
-    }
-    navigator.clipboard.writeText(el.value).then(() => {
-        showToast('已复制汇总内容');
-    });
-}
+function buildSummaryText(listId) {
+    let resultBlocks = [];
 
-function clearCurrentPage() {
-    vibrateShort();
-    if (!confirm('确定要清空本页所有内容吗？')) return;
+    workspaces.forEach(ws => {
+        const pName = ws.name || '未命名项目';
+        const rawItems = (ws.data && ws.data[listId]) ? ws.data[listId] : [];
 
-    fields.forEach(f => {
-        const el = document.getElementById(f);
-        if (el) {
-            if (f === 'worker-count') el.value = '2';
-            else if (f === 'manager-count') el.value = '0';
-            else el.value = '';
+        let validItems = [];
+        rawItems.forEach(text => {
+            const v = text.trim();
+            if (v && v !== '无') validItems.push(v);
+        });
+
+        if (validItems.length > 0) {
+            let blockStr = pName + '：\n';
+            validItems.forEach((v, index) => {
+                blockStr += (index + 1) + '. ' + v + '\n';
+            });
+            resultBlocks.push(blockStr.trim());
         }
     });
 
-    dynamicLists.forEach(listId => {
-        const listEl = document.getElementById(`${listId}-list`);
-        if (listEl) listEl.innerHTML = '';
-        addDynamicItem(`${listId}-list`, getPlaceholder(listId));
-    });
-
-    document.getElementById('progress-slider').value = '65';
-    updateProgressVal();
-    saveDraft();
-    showToast('已清空本页');
+    if (resultBlocks.length === 0) return '无';
+    return resultBlocks.join('\n\n');
 }
 
-function generateAndCopy() {
-    vibrateShort();
-
-    const pName = document.getElementById('project-name').value.trim() || '项目';
-    const date = document.getElementById('report-date').value || new Date().toISOString().split('T')[0];
-    const weather = document.getElementById('weather').options[document.getElementById('weather').selectedIndex].text;
-    const workerCount = document.getElementById('worker-count').value;
-    const managerCount = document.getElementById('manager-count').value;
-    const progress = document.getElementById('progress-slider').value;
-
-    const todayItems = [];
-    document.querySelectorAll('#today-done-list textarea').forEach(ta => {
-        if (ta.value.trim()) todayItems.push(ta.value.trim());
-    });
-
-    const tomorrowItems = [];
-    document.querySelectorAll('#tomorrow-plan-list textarea').forEach(ta => {
-        if (ta.value.trim()) tomorrowItems.push(ta.value.trim());
-    });
-
-    const issuesItems = [];
-    document.querySelectorAll('#issues-list textarea').forEach(ta => {
-        if (ta.value.trim()) issuesItems.push(ta.value.trim());
-    });
-
-    let content = `【${pName}】项目日报\n\n`;
-    content += `📅 日期：${date}\n`;
-    content += `☀️ 天气：${weather}\n`;
-    content += `👥 人员：管理人员 ${managerCount} 名，工人 ${workerCount} 名\n`;
-    content += `📊 进度：${progress}%\n\n`;
-
-    if (todayItems.length > 0) {
-        content += `✅ 今日已完成：\n`;
-        todayItems.forEach((item, index) => {
-            content += `${index + 1}. ${item}\n`;
-        });
-        content += '\n';
+function copySummaryField(id) {
+    const text = document.getElementById(id).value;
+    if (!text) {
+        showToast('内容为空');
+        return;
     }
-
-    if (tomorrowItems.length > 0) {
-        content += `📅 明日计划：\n`;
-        tomorrowItems.forEach((item, index) => {
-            content += `${index + 1}. ${item}\n`;
-        });
-        content += '\n';
-    }
-
-    if (issuesItems.length > 0) {
-        content += `⚠️ 问题需求：\n`;
-        issuesItems.forEach((item, index) => {
-            content += `${index + 1}. ${item}\n`;
-        });
-    }
-
-    navigator.clipboard.writeText(content).then(() => {
-        showToast('✅ 日报已生成并复制到剪贴板');
-    });
+    doCopy(text, '已复制合并汇总记录');
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    await loadPlugins();
-    initWorkspaces();
-    setupStatusBar();
-
-    fields.forEach(f => {
-        const el = document.getElementById(f);
-        if (el) el.addEventListener('input', debounceSaveDraft);
-    });
-
-    const slider = document.getElementById('progress-slider');
-    if (slider) {
-        slider.addEventListener('input', function () {
-            updateProgressVal();
+// 复制核心公共函数
+function doCopy(text, successMsg) {
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast(successMsg);
+        }).catch(err => {
+            fallbackCopyTextToClipboard(text, successMsg);
         });
+    } else {
+        fallbackCopyTextToClipboard(text, successMsg);
     }
+}
 
-    document.getElementById('clear-draft-btn').addEventListener('click', clearCurrentPage);
-    document.getElementById('generate-btn').addEventListener('click', generateAndCopy);
-});
+// 兼容老版本浏览器的复制
+function fallbackCopyTextToClipboard(text, successMsg) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        showToast(successMsg);
+    } catch (err) {
+        showToast('复制失败，请手动长按复制');
+    }
+    document.body.removeChild(textArea);
+}
+
+// 吐司提示
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.innerText = msg;
+    t.classList.add('show');
+    setTimeout(() => {
+        t.classList.remove('show');
+    }, 2500);
+}

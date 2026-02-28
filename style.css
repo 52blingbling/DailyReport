@@ -8,41 +8,38 @@
   --border-color: #e5e5ea;
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   --border-radius: 14px;
+  
+  /* 新增颜色变量 */
   --header-bg: rgba(242, 242, 247, 0.95);
+  --bar-bg: rgba(255, 255, 255, 0.95);
   --input-bg: #fafafa;
+  --input-bg-focus: #ffffff;
   --btn-secondary-bg: #eef5ff;
-  --btn-secondary-text: #007AFF;
-  --stepper-bg: #f0f0f0;
-  --stepper-btn-bg: #f0f0f0;
-  --bottom-bar-bg: rgba(255, 255, 255, 0.95);
-  --toast-bg: rgba(0, 0, 0, 0.8);
-  --primary-btn-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
-  --copy-btn-bg: #f2f2f7;
-  --copy-btn-active: #e0e0e0;
+  --btn-remove-bg: #ffebee;
+  --step-btn-bg: #f0f0f0;
+  --step-btn-active: #e0e0e0;
+  --heading-color: #333;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --primary-color: #0A84FF;
-    --bg-color: #000000;
-    --card-bg: #1c1c1e;
-    --text-main: #ffffff;
-    --text-muted: #8e8e93;
-    --border-color: #38383a;
-    --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    --header-bg: rgba(0, 0, 0, 0.95);
-    --input-bg: #2c2c2e;
-    --btn-secondary-bg: rgba(10, 132, 255, 0.2);
-    --btn-secondary-text: #0A84FF;
-    --stepper-bg: #2c2c2e;
-    --stepper-btn-bg: #3a3a3c;
-    --bottom-bar-bg: rgba(28, 28, 30, 0.95);
-    --toast-bg: rgba(255, 255, 255, 0.9);
-    --toast-text: #000000;
-    --primary-btn-shadow: 0 4px 12px rgba(10, 132, 255, 0.4);
-    --copy-btn-bg: #2c2c2e;
-    --copy-btn-active: #3a3a3c;
-  }
+/* 深色模式变量覆盖 */
+[data-theme="dark"] {
+  --primary-color: #0a84ff; /* 稍微亮一点的蓝色 */
+  --bg-color: #000000;
+  --card-bg: #1c1c1e;
+  --text-main: #ffffff;
+  --text-muted: #8e8e93;
+  --border-color: #38383a;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  
+  --header-bg: rgba(0, 0, 0, 0.95);
+  --bar-bg: rgba(28, 28, 30, 0.95);
+  --input-bg: #2c2c2e;
+  --input-bg-focus: #3a3a3c;
+  --btn-secondary-bg: #2c2c2e;
+  --btn-remove-bg: #4a2c2c; /* 深红色背景 */
+  --step-btn-bg: #2c2c2e;
+  --step-btn-active: #3a3a3c;
+  --heading-color: #ffffff;
 }
 
 * {
@@ -56,6 +53,7 @@ body {
   background-color: var(--bg-color);
   color: var(--text-main);
   -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 .app-container {
@@ -63,7 +61,6 @@ body {
   margin: 0 auto;
   min-height: 100vh;
   position: relative;
-  padding-top: 20px;
   padding-bottom: 90px;
 }
 
@@ -79,6 +76,7 @@ header {
   z-index: 20;
   background-color: var(--header-bg);
   backdrop-filter: blur(10px);
+  transition: background-color 0.3s;
 }
 
 .header-top {
@@ -91,7 +89,7 @@ header {
 h1 {
   font-size: 20px;
   font-weight: 600;
-  color: var(--text-main);
+  color: var(--heading-color);
 }
 
 .text-btn {
@@ -106,9 +104,9 @@ h1 {
 .text-btn.secondary {
   font-size: 14px;
   background: var(--btn-secondary-bg);
-  color: var(--btn-secondary-text);
   padding: 4px 10px;
   border-radius: 12px;
+  transition: background-color 0.3s;
 }
 
 main {
@@ -121,6 +119,7 @@ main {
   padding: 18px;
   margin-bottom: 16px;
   box-shadow: var(--shadow);
+  transition: background-color 0.3s, box-shadow 0.3s;
 }
 
 .row {
@@ -178,7 +177,7 @@ input:focus,
 textarea:focus {
   outline: none;
   border-color: var(--primary-color);
-  background: var(--card-bg);
+  background: var(--input-bg-focus);
   box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
 }
 
@@ -193,7 +192,7 @@ textarea {
   border: 1px solid var(--border-color);
   border-radius: 10px;
   overflow: hidden;
-  background: var(--stepper-bg);
+  background: var(--input-bg);
 }
 
 .stepper input {
@@ -219,12 +218,12 @@ textarea {
   font-size: 20px;
   color: var(--text-main);
   cursor: pointer;
-  background: var(--stepper-btn-bg);
+  background: var(--step-btn-bg);
   transition: background 0.2s;
 }
 
 .step-btn:active {
-  background: var(--copy-btn-active);
+  background: var(--step-btn-active);
 }
 
 .input-header {
@@ -242,7 +241,7 @@ textarea {
 }
 
 .copy-small-btn {
-  background: var(--copy-btn-bg);
+  background: var(--bg-color);
   border: none;
   padding: 6px 12px;
   border-radius: 12px;
@@ -250,10 +249,11 @@ textarea {
   color: var(--text-main);
   font-weight: 500;
   cursor: pointer;
+  transition: background 0.2s;
 }
 
 .copy-small-btn:active {
-  background: var(--copy-btn-active);
+  background: var(--step-btn-active);
 }
 
 .slider-group {
@@ -290,7 +290,7 @@ input[type="range"] {
   left: 0;
   right: 0;
   padding: 16px 20px 24px;
-  background: var(--bottom-bar-bg);
+  background: var(--bar-bg);
   backdrop-filter: blur(10px);
   max-width: 500px;
   margin: 0 auto;
@@ -298,6 +298,7 @@ input[type="range"] {
   border-top-right-radius: 24px;
   border-top: 1px solid var(--border-color);
   box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.03);
+  transition: background-color 0.3s, border-color 0.3s;
 }
 
 .primary-btn {
@@ -310,7 +311,7 @@ input[type="range"] {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: var(--primary-btn-shadow);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
   transition: transform 0.1s;
 }
 
@@ -323,8 +324,8 @@ input[type="range"] {
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--toast-bg);
-  color: var(--toast-text, white);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
   padding: 10px 20px;
   border-radius: 20px;
   font-size: 14px;
@@ -371,7 +372,7 @@ input[type="range"] {
 }
 
 .remove-btn {
-  background: #ffebee;
+  background: var(--btn-remove-bg);
   color: #f44336;
   border: none;
   width: 30px;
@@ -389,7 +390,8 @@ input[type="range"] {
 }
 
 .remove-btn:active {
-  background: #ffcdd2;
+  background: #ffcdd2; /* 这里的 hover 态也可以优化，暂时保留或微调 */
+  opacity: 0.8;
 }
 
 .add-btn-wrap {
@@ -486,7 +488,7 @@ input[type="range"] {
 
 .add-tab-btn:active {
   transform: scale(0.9);
-  background: var(--stepper-btn-bg);
+  background: var(--step-btn-active);
 }
 
 /* 进场与过渡动画 */
