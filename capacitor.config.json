@@ -7,8 +7,7 @@
     },
     "plugins": {
         "StatusBar": {
-            "style": "LIGHT",
-            "backgroundColor": "#f2f2f7"
+            "translucent": true
         }
     }
 }

@@ -11,10 +11,14 @@ let activeTabId = null;
 
 let HapticsPlugin = null;
 let ImpactStyle = null;
+let StatusBarPlugin = null;
 if (window.Capacitor) {
     import('@capacitor/haptics').then(module => {
         HapticsPlugin = module.Haptics;
         ImpactStyle = module.ImpactStyle;
+    }).catch(() => {});
+    import('@capacitor/status-bar').then(module => {
+        StatusBarPlugin = module.StatusBar;
     }).catch(() => {});
 }
 
@@ -360,6 +364,10 @@ function updateItemNumbers(listId) {
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
     initWorkspaces();
+
+    if (StatusBarPlugin) {
+        StatusBarPlugin.setTranslucent({ translucent: true });
+    }
 
     // 绑定所有输入框的 input 事件以实现【自动保存草稿】
     fields.forEach(f => {
