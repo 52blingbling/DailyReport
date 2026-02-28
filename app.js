@@ -6,18 +6,29 @@ const fields = [
 
 const dynamicLists = ['today-done', 'tomorrow-plan', 'issues'];
 
-// 多项目管理核心逻辑
-let workspaces = []; // 存储所有标签页配置及数据 { id: 'tab_xxx', name: '项目名', data: {} }
+let workspaces = [];
 let activeTabId = null;
+
+let HapticsPlugin = null;
+let ImpactStyle = null;
+if (window.Capacitor) {
+    import('@capacitor/haptics').then(module => {
+        HapticsPlugin = module.Haptics;
+        ImpactStyle = module.ImpactStyle;
+    }).catch(() => {});
+}
 
 // 生成唯一 ID
 function genId() {
     return 'tab_' + Math.random().toString(36).substr(2, 9);
 }
 
-// 触觉震动提示补充（增强原生APP体感）
 function vibrateShort() {
-    if (navigator.vibrate) navigator.vibrate(40);
+    if (HapticsPlugin && ImpactStyle) {
+        HapticsPlugin.impact({ style: ImpactStyle.Light });
+    } else if (navigator.vibrate) {
+        navigator.vibrate(40);
+    }
 }
 
 // 历史项目名称存储
@@ -197,6 +208,22 @@ function loadWorkspaceData(id) {
     if (!tabObj) return;
 
     const data = tabObj.data || {};
+
+    // 自动跨天数据结转逻辑
+    const todayStr = new Date().toISOString().split('T')[0];
+    const savedDateStr = data['report-date'];
+
+    if (savedDateStr && savedDateStr < todayStr) {
+        // 发现数据记录的日期比今天老
+        data['report-date'] = todayStr; // 更新为今日日期
+        
+        // 把“明日计划”复制到“今日已完成”
+        const tomorrowItems = data['tomorrow-plan'] || [];
+        data['today-done'] = [...tomorrowItems]; // 直接完全复制过去
+        
+        // 自动触发一次保存更新存储
+        forceSaveWorkspaces();
+    }
 
     fields.forEach(f => {
         const el = document.getElementById(f);
