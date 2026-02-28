@@ -447,7 +447,7 @@ document.getElementById('generate-btn').addEventListener('click', () => {
     // 模板拼接
     const reportText = `项目：${pName}\n日期：${formattedDate}\n天气：${weather}\n一、管理人员：${managers}名，工人：${workers}名\n二、今日已完成\n${today}\n三、明日计划\n${tomorrow}\n四、问题需求\n${issues}`;
 
-    doCopy(reportText, '✅ 完整日报已生成并复制，可直接粘贴到微信');
+    doCopy(reportText, '✅ 完整日报已生成并复制，可直接粘贴到飞书等OA软件');
 });
 
 // 清空草稿
