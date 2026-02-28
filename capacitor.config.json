@@ -1,8 +1,7 @@
 {
-    "appId": "com.blingbling'.dailyreport",
+    "appId": "com.blingbling.dailyreport",
     "appName": "快捷日报",
     "webDir": "www",
-    "bundledWebRuntime": false,
     "android": {
         "allowMixedContent": true
     }

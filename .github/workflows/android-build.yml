@@ -33,13 +33,13 @@ jobs:
           mkdir -p www
           cp index.html style.css app.js www/
           
-      - name: 🎨 生成 App 图标与启动页
-        run: npx @capacitor/assets generate --android
-          
       - name: 🤖 生成 Android 工程并同步代码
         run: |
           npx cap add android
           npx cap sync android
+
+      - name: 🎨 生成 App 图标与启动页 (必须在生成 Android 工程之后)
+        run: npx @capacitor/assets generate --android
 
       - name: 🔨 编译构建 Android Debug APK
         working-directory: ./android
@@ -50,5 +50,5 @@ jobs:
       - name: 🚀 上传 APK 制品供下载
         uses: actions/upload-artifact@v4
         with:
-          name: 快捷日报-青莲项目-v1.0.apk
+          name: 快捷日报-v1.0.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
