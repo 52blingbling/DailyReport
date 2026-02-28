@@ -1,0 +1,15 @@
+{
+  "name": "daily-report-app",
+  "version": "1.0.0",
+  "description": "快捷项目日报Android端",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0"
+  }
+}

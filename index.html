@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>快捷日报</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div id="main-app" class="app-container">
+    <header>
+      <div class="header-top">
+        <h1>📝 快捷项目日报</h1>
+        <div class="header-actions">
+          <button class="text-btn" onclick="openSummary()">日报汇总</button>
+          <button id="clear-draft-btn" class="text-btn" style="color: #ff3b30; margin-left: 12px;">清空本页</button>
+        </div>
+      </div>
+      <!-- 多项目标签页 -->
+      <div class="tabs-container">
+        <div id="project-tabs" class="tabs-scroll"></div>
+        <button class="add-tab-btn" onclick="createNewTab()">+</button>
+      </div>
+    </header>
+
+    <main id="main-content" class="form-animate">
+      <!-- 基本信息卡片 -->
+      <section class="card">
+        <div class="input-group">
+          <label>项目名称</label>
+          <input type="text" id="project-name" list="project-list" placeholder="例如：武汉金龙">
+          <datalist id="project-list">
+            <option value="青莲项目"></option>
+            <option value="武汉金龙"></option>
+          </datalist>
+        </div>
+        <div class="row">
+          <div class="input-group half">
+            <label>日期</label>
+            <input type="date" id="report-date">
+          </div>
+          <div class="input-group half">
+            <label>天气</label>
+            <select id="weather">
+              <option value="晴">☀️ 晴天</option>
+              <option value="多云">⛅ 多云</option>
+              <option value="阴">☁️ 阴天</option>
+              <option value="雨">🌧️ 雨天</option>
+              <option value="雪">❄️ 雪天</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="input-group half stepper-group">
+            <label>管理人员 (名)</label>
+            <div class="stepper">
+              <button type="button" class="step-btn" onclick="stepVal('manager-count', -1)">-</button>
+              <input type="number" id="manager-count" value="0" min="0">
+              <button type="button" class="step-btn" onclick="stepVal('manager-count', 1)">+</button>
+            </div>
+          </div>
+          <div class="input-group half stepper-group">
+            <label>工人人数 (名)</label>
+            <div class="stepper">
+              <button type="button" class="step-btn" onclick="stepVal('worker-count', -1)">-</button>
+              <input type="number" id="worker-count" value="2" min="0">
+              <button type="button" class="step-btn" onclick="stepVal('worker-count', 1)">+</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 今日完成卡片 -->
+      <section class="card">
+        <div class="input-header">
+          <label>✅ 今日已完成</label>
+          <button class="copy-small-btn" onclick="copyDynamicField('today-done')">复制记录</button>
+        </div>
+        <div id="today-done-list" class="dynamic-list">
+          <!-- JS 自动填充 -->
+        </div>
+        <div class="add-btn-wrap">
+          <button class="text-btn secondary" onclick="addDynamicItem('today-done-list', '填写今日完成的工作...')">+ 添加一条</button>
+        </div>
+
+        <!-- 建议5：进度条拖拽输入 -->
+        <div class="slider-group">
+          <div class="slider-header">
+            <span>当前事项进度: <span id="progress-val">65</span>%</span>
+            <button class="text-btn secondary" onclick="appendProgress()">+ 追加到该条</button>
+          </div>
+          <input type="range" id="progress-slider" min="0" max="100" value="65">
+        </div>
+      </section>
+
+      <!-- 明日计划卡片 -->
+      <section class="card">
+        <div class="input-header">
+          <label>📅 明日计划</label>
+          <button class="copy-small-btn" onclick="copyDynamicField('tomorrow-plan')">复制记录</button>
+        </div>
+        <div id="tomorrow-plan-list" class="dynamic-list">
+          <!-- JS 自动填充 -->
+        </div>
+        <div class="add-btn-wrap">
+          <button class="text-btn secondary" onclick="addDynamicItem('tomorrow-plan-list', '填写明日的计划...')">+
+            添加一条</button>
+        </div>
+      </section>
+
+      <!-- 问题需求卡片 -->
+      <section class="card">
+        <div class="input-header">
+          <label>⚠️ 问题需求 (选填)</label>
+          <button class="copy-small-btn" onclick="copyDynamicField('issues')">复制记录</button>
+        </div>
+        <div id="issues-list" class="dynamic-list">
+          <!-- JS 自动填充 -->
+        </div>
+        <div class="add-btn-wrap">
+          <button class="text-btn secondary" onclick="addDynamicItem('issues-list', '填写遇到的问题或需求，无则填无')">+ 添加一条</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- 底部悬浮按钮 -->
+    <div class="bottom-bar">
+      <button class="primary-btn" id="generate-btn">🚀 一键生成并复制完整日报</button>
+    </div>
+  </div>
+
+  <!-- 汇总页面布局 (默认隐藏) -->
+  <div id="summary-app" class="app-container" style="display: none;">
+    <header>
+      <div class="header-top">
+        <button class="text-btn" onclick="closeSummary()">🔙 返回填写</button>
+        <h1>📊 多项目汇总</h1>
+        <div style="width: 80px;"></div> <!-- 占位保持居中 -->
+      </div>
+    </header>
+    <main class="form-animate">
+      <section class="card">
+        <div class="input-header">
+          <label>✅ 今日已完成汇总</label>
+          <button class="copy-small-btn" onclick="copySummaryField('summary-today-done')">复制记录</button>
+        </div>
+        <textarea id="summary-today-done" rows="5" placeholder="汇总结果空..."></textarea>
+      </section>
+
+      <section class="card">
+        <div class="input-header">
+          <label>📅 明日计划汇总</label>
+          <button class="copy-small-btn" onclick="copySummaryField('summary-tomorrow-plan')">复制记录</button>
+        </div>
+        <textarea id="summary-tomorrow-plan" rows="5" placeholder="汇总结果空..."></textarea>
+      </section>
+
+      <section class="card">
+        <div class="input-header">
+          <label>⚠️ 问题需求汇总</label>
+          <button class="copy-small-btn" onclick="copySummaryField('summary-issues')">复制记录</button>
+        </div>
+        <textarea id="summary-issues" rows="3" placeholder="汇总结果空..."></textarea>
+      </section>
+    </main>
+  </div>
+
+  <!-- 提示弹窗 -->
+  <div id="toast" class="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
