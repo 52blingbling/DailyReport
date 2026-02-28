@@ -43,7 +43,6 @@ jobs:
           VALUES_DIR="android/app/src/main/res/values"
           VALUES_NIGHT_DIR="android/app/src/main/res/values-night"
           
-          mkdir -p "$VALUES_DIR"
           mkdir -p "$VALUES_NIGHT_DIR"
           
           cat > "$VALUES_DIR/colors.xml" << 'EOF'
@@ -60,15 +59,11 @@ jobs:
           </resources>
           EOF
           
-          cat > "$VALUES_DIR/styles.xml" << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
-                  <item name="android:statusBarColor">@color/status_bar_color</item>
-                  <item name="android:windowLightStatusBar">true</item>
-              </style>
-          </resources>
-          EOF
+          sed -i 's/<style name="AppTheme" parent="Theme.AppCompat.DayNight.DarkActionBar">/<style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">/g' "$VALUES_DIR/styles.xml"
+          
+          sed -i '/<style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">/,/<\/style>/{
+            s/<\/style>/        <item name="android:statusBarColor">@color\/status_bar_color<\/item>\n        <item name="android:windowLightStatusBar">true<\/item>\n    <\/style>/
+          }' "$VALUES_DIR/styles.xml"
           
           cat > "$VALUES_NIGHT_DIR/styles.xml" << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
