@@ -38,13 +38,47 @@ jobs:
           npx cap add android
           npx cap sync android
 
-      - name: 🎨 配置状态栏白色背景
+      - name: 🎨 配置状态栏颜色（支持深色模式）
         run: |
-          STYLES_FILE="android/app/src/main/res/values/styles.xml"
-          if [ -f "$STYLES_FILE" ]; then
-            sed -i 's/<style name="AppTheme" parent="Theme.AppCompat.DayNight.DarkActionBar">/<style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">/g' "$STYLES_FILE"
-            sed -i 's/<\/style>/<item name="android:statusBarColor">#ffffff<\/item>\n        <item name="android:windowLightStatusBar">true<\/item>\n    <\/style>/g' "$STYLES_FILE"
-          fi
+          VALUES_DIR="android/app/src/main/res/values"
+          VALUES_NIGHT_DIR="android/app/src/main/res/values-night"
+          
+          mkdir -p "$VALUES_DIR"
+          mkdir -p "$VALUES_NIGHT_DIR"
+          
+          cat > "$VALUES_DIR/colors.xml" << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="status_bar_color">#f2f2f7</color>
+          </resources>
+          EOF
+          
+          cat > "$VALUES_NIGHT_DIR/colors.xml" << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="status_bar_color">#000000</color>
+          </resources>
+          EOF
+          
+          cat > "$VALUES_DIR/styles.xml" << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+                  <item name="android:statusBarColor">@color/status_bar_color</item>
+                  <item name="android:windowLightStatusBar">true</item>
+              </style>
+          </resources>
+          EOF
+          
+          cat > "$VALUES_NIGHT_DIR/styles.xml" << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+                  <item name="android:statusBarColor">@color/status_bar_color</item>
+                  <item name="android:windowLightStatusBar">false</item>
+              </style>
+          </resources>
+          EOF
 
       - name: 🎨 生成 App 图标与启动页 (必须在生成 Android 工程之后)
         run: npx @capacitor/assets generate --android
