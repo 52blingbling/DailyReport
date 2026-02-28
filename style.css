@@ -63,6 +63,7 @@ body {
   margin: 0 auto;
   min-height: 100vh;
   position: relative;
+  padding-top: 20px;
   padding-bottom: 90px;
 }
 

@@ -3,11 +3,11 @@
     "appName": "快捷日报",
     "webDir": "www",
     "android": {
-        "allowMixedContent": true
+        "allowMixedContent": true,
+        "theme": "AppTheme"
     },
     "plugins": {
         "StatusBar": {
-            "translucent": true,
             "style": "LIGHT"
         }
     }
