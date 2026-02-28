@@ -12,14 +12,34 @@ let activeTabId = null;
 let HapticsPlugin = null;
 let ImpactStyle = null;
 let StatusBarPlugin = null;
-if (window.Capacitor) {
-    import('@capacitor/haptics').then(module => {
-        HapticsPlugin = module.Haptics;
-        ImpactStyle = module.ImpactStyle;
-    }).catch(() => {});
-    import('@capacitor/status-bar').then(module => {
-        StatusBarPlugin = module.StatusBar;
-    }).catch(() => {});
+let pluginsReady = false;
+
+async function loadPlugins() {
+    if (!window.Capacitor) {
+        pluginsReady = true;
+        return;
+    }
+    try {
+        const hapticsModule = await import('@capacitor/haptics');
+        HapticsPlugin = hapticsModule.Haptics;
+        ImpactStyle = hapticsModule.ImpactStyle;
+    } catch (e) {}
+    try {
+        const statusBarModule = await import('@capacitor/status-bar');
+        StatusBarPlugin = statusBarModule.StatusBar;
+    } catch (e) {}
+    pluginsReady = true;
+}
+
+function setupStatusBar() {
+    if (!StatusBarPlugin) return;
+    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    StatusBarPlugin.setTranslucent({ translucent: true });
+    StatusBarPlugin.setBackgroundColor({ color: isDarkMode ? '#000000' : '#ffffff' });
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        StatusBarPlugin.setBackgroundColor({ color: e.matches ? '#000000' : '#ffffff' });
+    });
 }
 
 // 生成唯一 ID
@@ -362,18 +382,10 @@ function updateItemNumbers(listId) {
 }
 
 // 初始化
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadPlugins();
     initWorkspaces();
-
-    if (StatusBarPlugin) {
-        const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        StatusBarPlugin.setTranslucent({ translucent: true });
-        StatusBarPlugin.setBackgroundColor({ color: isDarkMode ? '#000000' : '#ffffff' });
-
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-            StatusBarPlugin.setBackgroundColor({ color: e.matches ? '#000000' : '#ffffff' });
-        });
-    }
+    setupStatusBar();
 
     // 绑定所有输入框的 input 事件以实现【自动保存草稿】
     fields.forEach(f => {
