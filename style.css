@@ -8,6 +8,41 @@
   --border-color: #e5e5ea;
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   --border-radius: 14px;
+  --header-bg: rgba(242, 242, 247, 0.95);
+  --input-bg: #fafafa;
+  --btn-secondary-bg: #eef5ff;
+  --btn-secondary-text: #007AFF;
+  --stepper-bg: #f0f0f0;
+  --stepper-btn-bg: #f0f0f0;
+  --bottom-bar-bg: rgba(255, 255, 255, 0.95);
+  --toast-bg: rgba(0, 0, 0, 0.8);
+  --primary-btn-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+  --copy-btn-bg: #f2f2f7;
+  --copy-btn-active: #e0e0e0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary-color: #0A84FF;
+    --bg-color: #000000;
+    --card-bg: #1c1c1e;
+    --text-main: #ffffff;
+    --text-muted: #8e8e93;
+    --border-color: #38383a;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --header-bg: rgba(0, 0, 0, 0.95);
+    --input-bg: #2c2c2e;
+    --btn-secondary-bg: rgba(10, 132, 255, 0.2);
+    --btn-secondary-text: #0A84FF;
+    --stepper-bg: #2c2c2e;
+    --stepper-btn-bg: #3a3a3c;
+    --bottom-bar-bg: rgba(28, 28, 30, 0.95);
+    --toast-bg: rgba(255, 255, 255, 0.9);
+    --toast-text: #000000;
+    --primary-btn-shadow: 0 4px 12px rgba(10, 132, 255, 0.4);
+    --copy-btn-bg: #2c2c2e;
+    --copy-btn-active: #3a3a3c;
+  }
 }
 
 * {
@@ -41,7 +76,7 @@ header {
   position: sticky;
   top: 0;
   z-index: 20;
-  background-color: rgba(242, 242, 247, 0.95);
+  background-color: var(--header-bg);
   backdrop-filter: blur(10px);
 }
 
@@ -55,7 +90,7 @@ header {
 h1 {
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-main);
 }
 
 .text-btn {
@@ -69,7 +104,8 @@ h1 {
 
 .text-btn.secondary {
   font-size: 14px;
-  background: #eef5ff;
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
   padding: 4px 10px;
   border-radius: 12px;
 }
@@ -122,7 +158,8 @@ select {
   border: 1px solid var(--border-color);
   border-radius: 10px;
   font-size: 15px;
-  background: #fafafa;
+  background: var(--input-bg);
+  color: var(--text-main);
   transition: all 0.3s;
 }
 
@@ -140,7 +177,7 @@ input:focus,
 textarea:focus {
   outline: none;
   border-color: var(--primary-color);
-  background: #fff;
+  background: var(--card-bg);
   box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
 }
 
@@ -155,7 +192,7 @@ textarea {
   border: 1px solid var(--border-color);
   border-radius: 10px;
   overflow: hidden;
-  background: #fafafa;
+  background: var(--stepper-bg);
 }
 
 .stepper input {
@@ -166,6 +203,7 @@ textarea {
   background: transparent;
   width: 100%;
   font-weight: 600;
+  color: var(--text-main);
 }
 
 .stepper input:focus {
@@ -180,12 +218,12 @@ textarea {
   font-size: 20px;
   color: var(--text-main);
   cursor: pointer;
-  background: #f0f0f0;
+  background: var(--stepper-btn-bg);
   transition: background 0.2s;
 }
 
 .step-btn:active {
-  background: #e0e0e0;
+  background: var(--copy-btn-active);
 }
 
 .input-header {
@@ -203,7 +241,7 @@ textarea {
 }
 
 .copy-small-btn {
-  background: var(--bg-color);
+  background: var(--copy-btn-bg);
   border: none;
   padding: 6px 12px;
   border-radius: 12px;
@@ -214,7 +252,7 @@ textarea {
 }
 
 .copy-small-btn:active {
-  background: #e0e0e0;
+  background: var(--copy-btn-active);
 }
 
 .slider-group {
@@ -251,7 +289,7 @@ input[type="range"] {
   left: 0;
   right: 0;
   padding: 16px 20px 24px;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--bottom-bar-bg);
   backdrop-filter: blur(10px);
   max-width: 500px;
   margin: 0 auto;
@@ -271,7 +309,7 @@ input[type="range"] {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+  box-shadow: var(--primary-btn-shadow);
   transition: transform 0.1s;
 }
 
@@ -284,8 +322,8 @@ input[type="range"] {
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
+  background: var(--toast-bg);
+  color: var(--toast-text, white);
   padding: 10px 20px;
   border-radius: 20px;
   font-size: 14px;
@@ -447,7 +485,7 @@ input[type="range"] {
 
 .add-tab-btn:active {
   transform: scale(0.9);
-  background: #f0f0f0;
+  background: var(--stepper-btn-bg);
 }
 
 /* 进场与过渡动画 */

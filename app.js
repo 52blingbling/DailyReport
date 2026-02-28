@@ -366,7 +366,13 @@ document.addEventListener('DOMContentLoaded', () => {
     initWorkspaces();
 
     if (StatusBarPlugin) {
+        const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         StatusBarPlugin.setTranslucent({ translucent: true });
+        StatusBarPlugin.setBackgroundColor({ color: isDarkMode ? '#000000' : '#ffffff' });
+
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            StatusBarPlugin.setBackgroundColor({ color: e.matches ? '#000000' : '#ffffff' });
+        });
     }
 
     // 绑定所有输入框的 input 事件以实现【自动保存草稿】
