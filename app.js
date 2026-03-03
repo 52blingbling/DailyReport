@@ -213,6 +213,12 @@ function closeTab(id) {
     vibrateShort();
     if (workspaces.length <= 1) return;
 
+    // 增加确认弹窗
+    const tabName = workspaces.find(t => t.id === id)?.name || '此项目';
+    if (!confirm(`确定要删除“${tabName}”吗？此操作无法撤销。`)) {
+        return;
+    }
+
     const index = workspaces.findIndex(t => t.id === id);
     if (index === -1) return;
 
@@ -332,6 +338,13 @@ function getPlaceholder(listId) {
     return '';
 }
 
+// 自动调整 textarea 高度
+function autoResize(el) {
+    if (!el) return;
+    el.style.height = 'auto'; // 先重置高度
+    el.style.height = (el.scrollHeight) + 'px'; // 根据内容设置高度
+}
+
 function addDynamicItem(listId, placeholder = '', value = '') {
     const listEl = document.getElementById(listId);
     if (!listEl) return;
@@ -346,10 +359,20 @@ function addDynamicItem(listId, placeholder = '', value = '') {
     countSpan.innerText = count + '.';
 
     const ta = document.createElement('textarea');
-    ta.rows = 2;
+    ta.rows = 1; // 初始行数改为1
+    ta.style.overflowY = 'hidden'; // 隐藏滚动条
+    ta.style.minHeight = '40px';
     ta.placeholder = placeholder;
     ta.value = value;
-    ta.addEventListener('input', debounceSaveDraft);
+    
+    // 绑定事件：输入时自动保存 + 自动调整高度
+    ta.addEventListener('input', function() {
+        debounceSaveDraft();
+        autoResize(this);
+    });
+    
+    // 延迟一小段时间初始化高度（因为刚插入 DOM scrollHeight 可能不准）
+    setTimeout(() => autoResize(ta), 0);
 
     itemDiv.appendChild(countSpan);
     itemDiv.appendChild(ta);
@@ -419,6 +442,14 @@ document.addEventListener('DOMContentLoaded', () => {
     fields.forEach(f => {
         const el = document.getElementById(f);
         if (el) el.addEventListener('input', debounceSaveDraft);
+    });
+
+    // 为汇总页面的 textarea 也增加自动高度
+    document.querySelectorAll('#summary-app textarea').forEach(ta => {
+        ta.style.overflowY = 'hidden';
+        ta.addEventListener('input', function() {
+            autoResize(this);
+        });
     });
 
     // 进度条拖动监听
@@ -566,9 +597,20 @@ function openSummary() {
     document.getElementById('summary-app').style.display = 'block';
 
     // 取出各个部分的内容聚合
-    document.getElementById('summary-today-done').value = buildSummaryText('today-done');
-    document.getElementById('summary-tomorrow-plan').value = buildSummaryText('tomorrow-plan');
-    document.getElementById('summary-issues').value = buildSummaryText('issues');
+    const sumToday = document.getElementById('summary-today-done');
+    const sumTmr = document.getElementById('summary-tomorrow-plan');
+    const sumIssues = document.getElementById('summary-issues');
+
+    sumToday.value = buildSummaryText('today-done');
+    sumTmr.value = buildSummaryText('tomorrow-plan');
+    sumIssues.value = buildSummaryText('issues');
+
+    // 触发自动高度调整
+    setTimeout(() => {
+        autoResize(sumToday);
+        autoResize(sumTmr);
+        autoResize(sumIssues);
+    }, 0);
 }
 
 function closeSummary() {
