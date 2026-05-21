@@ -273,15 +273,21 @@ function loadWorkspaceData(id) {
     const savedDateStr = data['report-date'];
 
     if (savedDateStr && savedDateStr < todayStr) {
-        // 发现数据记录的日期比今天老
-        data['report-date'] = todayStr; // 更新为今日日期
-        
-        // 把“明日计划”复制到“今日已完成”
-        const tomorrowItems = data['tomorrow-plan'] || [];
-        data['today-done'] = [...tomorrowItems]; // 直接完全复制过去
-        
-        // 自动触发一次保存更新存储
-        forceSaveWorkspaces();
+        // 发现数据记录的日期比今天老，弹出确认框
+        if (confirm(`检测到日期已更新（${savedDateStr} → ${todayStr}），是否将"明日计划"填入"今日已完成"？`)) {
+            data['report-date'] = todayStr; // 更新为今日日期
+            
+            // 把"明日计划"复制到"今日已完成"
+            const tomorrowItems = data['tomorrow-plan'] || [];
+            data['today-done'] = [...tomorrowItems]; // 直接完全复制过去
+            
+            // 自动触发一次保存更新存储
+            forceSaveWorkspaces();
+        } else {
+            // 用户取消，仅更新日期
+            data['report-date'] = todayStr;
+            forceSaveWorkspaces();
+        }
     }
 
     fields.forEach(f => {
