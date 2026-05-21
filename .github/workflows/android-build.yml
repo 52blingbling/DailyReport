@@ -35,11 +35,14 @@ jobs:
           
       - name: 🤖 生成 Android 工程并同步代码
         run: |
-          npx cap add android
+          # 自动判断：如果仓库不自带 android 目录才执行 add，避免报错
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
           npx cap sync android
 
       - name: 🎨 生成 App 图标与启动页 (必须在生成 Android 工程之后)
-        run: npx @capacitor/assets generate --android
+        run: npx @capacitor/assets generate --android || echo "跳过图标生成"
 
       - name: 🔨 编译构建 Android Debug APK
         working-directory: ./android
@@ -47,8 +50,14 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: 🚀 上传 APK 制品供下载
-        uses: actions/upload-artifact@v4
+      - name: 🚀 自动发布到仓库 Release 页（直接下载 APK）
+        uses: softprops/action-gh-release@v2
         with:
-          name: 快捷日报-v1.0.apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          tag_name: v1.0.${{ github.run_number }}
+          name: 快捷日报 自动构建 v1.0.${{ github.run_number }}
+          draft: false
+          prerelease: false
+          # 这里直接指向编译好的本地 APK 路径
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
